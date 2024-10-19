@@ -2,17 +2,20 @@ import { BiChevronDown, BiMenu, BiSearch } from "react-icons/bi";
 import CustomModal from "../Modal/Modal.Component";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // For redirection
 
 const apiKey = process.env.REACT_APP_IPSTACK_KEY;
+const omdbApiKey = process.env.REACT_APP_OMDB_API_KEY;
+const omdbApiUrl = "https://www.omdbapi.com/";
+
 function NavSm({ defaultLocation }) {
-  
   return (
     <>
       <div className="text-white flex items-center justify-between">
         <div>
           <h3 className="text-xl font-bold">It All Starts Here!</h3>
           <span className="text-gray-400 text-xs flex items-center cursor-pointer hover:text-white">
-            {defaultLocation || "Select you..."} <BiChevronDown />
+            {defaultLocation || "Select your location"}
           </span>
         </div>
         <div className="w-8 h-8">
@@ -23,22 +26,46 @@ function NavSm({ defaultLocation }) {
   );
 }
 
-function NavMd() {
+function NavMd({ onSearch, searchResults, onMovieClick }) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = async (e) => {
+    setSearchQuery(e.target.value);
+    onSearch(e.target.value); // Call the search function
+  };
+
   return (
     <>
-      <div className="w-full flex items-center gap-3 bg-white px-3 py-1 rounded-md">
+      <div className="w-full flex items-center gap-3 bg-white px-3 py-1 rounded-md relative">
         <BiSearch />
         <input
           type="search"
+          value={searchQuery}
+          onChange={handleSearch}
           className="w-full bg-transparent border-none focus:outline-none"
+          placeholder="Search for movies..."
         />
+        {searchResults.length > 0 && (
+          <ul className="absolute top-10 left-0 w-full bg-white shadow-lg z-10 rounded-md">
+            {searchResults.map((movie) => (
+              <li
+                key={movie.imdbID}
+                className="p-2 hover:bg-gray-200 cursor-pointer"
+                onClick={() => onMovieClick(movie.imdbID)}
+              >
+                {movie.Title} ({movie.Year})
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </>
   );
 }
 
-function NavLg({ defaultLocation }) {
+function NavLg({ defaultLocation, onSearch, searchResults, onMovieClick }) {
   const [location, setLocation] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const getUserLocation = () => {
@@ -51,11 +78,7 @@ function NavLg({ defaultLocation }) {
               const response = await axios.get(
                 `https://api.ipstack.com/check?access_key=${apiKey}`
               );
-
-              // const state = response?.data?.results[0].components.state;
-              // setLocation(state || defaultLocation);
-              setLocation(response.data.city)
-              
+              setLocation(response.data.city);
             } catch (error) {
               console.error("Error getting user location:", error);
               setLocation(defaultLocation);
@@ -75,6 +98,11 @@ function NavLg({ defaultLocation }) {
     getUserLocation();
   }, [defaultLocation]);
 
+  const handleSearch = async (e) => {
+    setSearchQuery(e.target.value);
+    onSearch(e.target.value); // Call the search function
+  };
+
   return (
     <>
       <div className="container flex mx-auto px-4 items-center justify-between">
@@ -86,21 +114,35 @@ function NavLg({ defaultLocation }) {
               className="w-full h-full"
             />
           </div>
-          <div className="w-full flex items-center gap-3 bg-white px-3 py-1 rounded-md">
+          <div className="w-full flex items-center gap-3 bg-white px-3 py-1 rounded-md relative">
             <BiSearch />
             <input
               type="search"
+              value={searchQuery}
+              onChange={handleSearch}
               className="w-full bg-transparent border-none focus:outline-none"
               placeholder="Search for movies, events, plays, sports and activities"
             />
+            {searchResults.length > 0 && (
+              <ul className="absolute top-10 left-0 w-full bg-white shadow-lg z-10 rounded-md">
+                {searchResults.map((movie) => (
+                  <li
+                    key={movie.imdbID}
+                    className="p-2 hover:bg-gray-200 cursor-pointer"
+                    onClick={() => onMovieClick(movie.imdbID)}
+                  >
+                    {movie.Title} ({movie.Year})
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-gray-200 text-base flex items-center cursor-pointer hover:text-white ">
-            {location || "Select you..."} <BiChevronDown />
+          <span className="text-gray-200 text-base flex items-center cursor-pointer hover:text-white">
+            {location || "Select your location"}
           </span>
           <CustomModal />
-
           <div className="w-8 h-8 text-white">
             <BiMenu className="w-full h-full" />
           </div>
@@ -112,19 +154,53 @@ function NavLg({ defaultLocation }) {
 
 // Main NavBar Component
 const Navbar = ({ defaultLocation }) => {
+  const [searchResults, setSearchResults] = useState([]);
+  const navigate = useNavigate(); // To navigate to the details page
+
+  const searchMovies = async (query) => {
+    if (query.length === 0) {
+      setSearchResults([]); // Clear results when query is empty
+      return;
+    }
+
+    try {
+      const response = await axios.get(omdbApiUrl, {
+        params: {
+          apikey: omdbApiKey,
+          s: query, // OMDB search by title
+        },
+      });
+      console.log(response.data);
+      if (response.data.Search) {
+        setSearchResults(response.data.Search);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+      setSearchResults([]);
+    }
+  };
+
+  const handleMovieClick = (imdbID) => {
+    navigate(`/movie/${imdbID}`); // Redirect to details page
+  };
+
   return (
     <nav className="bg-blue-950 px-4 py-3">
-      {/* Mobile Screen Navbar */}
       <div className="md:hidden">
         <NavSm defaultLocation={defaultLocation} />
       </div>
-      {/* Medium Screen Size */}
       <div className="hidden md:flex lg:hidden">
-        <NavMd />
+        <NavMd onSearch={searchMovies} searchResults={searchResults} onMovieClick={handleMovieClick} />
       </div>
-      {/* Large Screen Size */}
       <div className="hidden md:hidden lg:flex">
-        <NavLg defaultLocation={defaultLocation} />
+        <NavLg
+          defaultLocation={defaultLocation}
+          onSearch={searchMovies}
+          searchResults={searchResults}
+          onMovieClick={handleMovieClick}
+        />
       </div>
     </nav>
   );
