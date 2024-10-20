@@ -170,7 +170,7 @@ const Navbar = ({ defaultLocation }) => {
           s: query, // OMDB search by title
         },
       });
-      console.log(response.data);
+      // console.log(response.data);
       if (response.data.Search) {
         setSearchResults(response.data.Search);
       } else {

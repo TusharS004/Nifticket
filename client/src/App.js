@@ -6,6 +6,7 @@ import HomePage from "./pages/Home.Page";
 import MoviePage from "./pages/Movie.Page";
 import PlayPage from "./pages/Play.Page";
 import ErrorPage from "./pages/404";
+import MovieDetails from "./components/moviedetails";
 
 axios.defaults.baseURL = "https://api.themoviedb.org/3";
 axios.defaults.params = {};
@@ -18,6 +19,8 @@ function App() {
       <Route path="/movie/:id" element={<MoviePage />} />
       <Route path="/plays" element={<PlayPage />} />
       <Route path="*" element={<ErrorPage />} />
+      <Route path="/" element={<div>Home Page</div>} />
+      <Route path="/movie/:imdbID" element={<MovieDetails />} />
     </Routes>
   );
 }
